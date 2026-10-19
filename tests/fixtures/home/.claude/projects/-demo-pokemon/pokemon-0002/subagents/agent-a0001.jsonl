@@ -1,0 +1,2 @@
+{"parentUuid":null,"isSidechain":true,"agentId":"a0001","type":"user","timestamp":"2026-09-26T11:57:45Z","sessionId":"pokemon-0002","message":{"role":"user","content":"Find every component that still uses the old grid"}}
+{"parentUuid":"u1","isSidechain":true,"agentId":"a0001","type":"assistant","timestamp":"2026-09-26T11:58:30Z","sessionId":"pokemon-0002","requestId":"req_s1","message":{"id":"msg_s1","model":"claude-haiku-4-5","usage":{"input_tokens":100,"output_tokens":200},"content":[{"type":"tool_use","id":"tu9","name":"Grep","input":{"pattern":"OldGrid"}}]}}

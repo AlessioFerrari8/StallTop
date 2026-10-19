@@ -1,0 +1,3 @@
+{"type":"ai-title","aiTitle":"Mobile redesign","sessionId":"pokemon-0002"}
+{"type":"user","timestamp":"2026-09-26T11:40:00Z","sessionId":"pokemon-0002","message":{"role":"user","content":"build and deploy the mobile layout"}}
+{"type":"assistant","timestamp":"2026-09-26T11:57:40Z","sessionId":"pokemon-0002","requestId":"req_p1","message":{"id":"msg_p1","model":"claude-sonnet-5","usage":{"input_tokens":5,"output_tokens":300,"cache_read_input_tokens":90000,"cache_creation_input_tokens":2000},"content":[{"type":"tool_use","id":"tu3","name":"Bash","input":{"command":"npm run build"}}]}}

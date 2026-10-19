@@ -1,0 +1,4 @@
+{"sessionId":"g0001","projectHash":"b79bfdb05febdf21908c225b6112e3e51fe1713204d3d85a73f9e4a3370dd2e1","startTime":"2026-09-26T11:48:00Z","lastUpdated":"2026-09-26T11:50:00Z","messages":[
+ {"id":"1","type":"user","timestamp":"2026-09-26T11:48:00Z","content":"make the waveform react to the mouse"},
+ {"id":"2","type":"gemini","timestamp":"2026-09-26T11:50:00Z","model":"gemini-2.5-pro","content":"Updated the canvas handler.","thoughts":[],"tokens":{"input":90000,"output":2500,"cached":60000,"thoughts":3500,"tool":0,"total":96000},"toolCalls":[{"id":"c1","name":"replace","args":{"file_path":"/demo/oscilla/src/wave.ts"},"status":"success","timestamp":"2026-09-26T11:49:30Z"}]}
+]}

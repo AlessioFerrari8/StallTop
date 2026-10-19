@@ -1,0 +1,7 @@
+{"sessionId":"7c9e1a2b-4d5f-4a6b-9c8d-0e1f2a3b4c5d","projectHash":"63b64e4577cdec9addce3053ff804061620f550db11e291b09398a5e8030950b","startTime":"2026-09-26T11:52:00.000Z","lastUpdated":"2026-09-26T11:52:00.000Z","kind":"main"}
+{"id":"s-u1","timestamp":"2026-09-26T11:52:10.000Z","type":"user","content":[{"text":"add a low-pass filter to the synth voice"}]}
+{"$set":{"lastUpdated":"2026-09-26T11:52:10.000Z"}}
+{"id":"s-m1","timestamp":"2026-09-26T11:59:30.000Z","type":"gemini","content":"","thoughts":[],"tokens":null,"model":"gemini-2.5-flash"}
+{"$set":{"lastUpdated":"2026-09-26T11:59:30.000Z"}}
+{"id":"s-m1","timestamp":"2026-09-26T11:59:30.000Z","type":"gemini","content":"","thoughts":[],"tokens":{"input":40000,"output":1500,"cached":30000,"thoughts":500,"tool":0,"total":42000},"model":"gemini-2.5-flash"}
+{"id":"s-m1","timestamp":"2026-09-26T11:59:30.000Z","type":"gemini","content":"","thoughts":[],"tokens":{"input":40000,"output":1500,"cached":30000,"thoughts":500,"tool":0,"total":42000},"model":"gemini-2.5-flash","toolCalls":[{"id":"call-1","name":"replace","args":{"file_path":"/demo/synth/src/voice.rs","old_string":"a","new_string":"b"},"status":"success","timestamp":"2026-09-26T11:59:40.000Z","displayName":"Edit","description":"","renderOutputAsMarkdown":true}]}

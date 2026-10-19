@@ -1,0 +1,10 @@
+[
+  {"agent": "claude", "project": "pokemon", "state": "needs_you"},
+  {"agent": "codex", "project": "museum", "state": "rate_limited"},
+  {"agent": "claude", "project": "vinylbot", "state": "rate_limited"},
+  {"agent": "claude", "project": "crm", "state": "working"},
+  {"agent": "gemini", "project": "synth", "state": "working"},
+  {"agent": "gemini", "project": "oscilla", "state": "idle"},
+  {"agent": "claude", "project": "gone", "state": "dead"},
+  {"agent": "claude", "project": "reused", "state": "dead"}
+]

@@ -1,0 +1,13 @@
+[
+  {"pid": 1001, "ppid": 900, "start_time": 500001, "argv": ["claude"], "cwd": "/demo/crm"},
+  {"pid": 1002, "ppid": 900, "start_time": 500002, "argv": ["claude"], "cwd": "/demo/pokemon"},
+  {"pid": 1003, "ppid": 900, "start_time": 500003, "argv": ["claude"], "cwd": "/demo/vinylbot"},
+  {"pid": 1005, "ppid": 900, "start_time": 999999, "argv": ["bash"], "cwd": "/"},
+  {"pid": 2001, "ppid": 900, "start_time": 600001, "argv": ["node", "/usr/local/bin/gemini"], "cwd": "/demo/oscilla"},
+  {"pid": 2002, "ppid": 2001, "start_time": 600002, "argv": ["node", "/usr/local/bin/gemini", "--sandbox-child"], "cwd": "/demo/oscilla"},
+  {"pid": 2003, "ppid": 900, "start_time": 600003, "argv": ["/usr/bin/node22", "/usr/local/lib/node_modules/@google/gemini-cli/bundle/gemini.js"], "cwd": "/demo/synth"},
+  {"pid": 4001, "ppid": 900, "start_time": 800001, "argv": ["node", "/usr/local/bin/codex"], "cwd": "/demo/museum"},
+  {"pid": 4002, "ppid": 4001, "start_time": 800002, "argv": ["/usr/local/lib/node_modules/@openai/codex/vendor/x86_64-unknown-linux-musl/codex/codex"], "cwd": "/demo/museum"},
+  {"pid": 4003, "ppid": 900, "start_time": 800003, "argv": ["codex", "login"], "cwd": "/demo"},
+  {"pid": 3001, "ppid": 900, "start_time": 700001, "argv": ["grep", "gemini"], "cwd": "/demo"}
+]
