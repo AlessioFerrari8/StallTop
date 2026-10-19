@@ -1,0 +1,25 @@
+[package]
+name = "stalltop"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.88"
+description = "htop for your AI coding agents"
+license = "MIT"
+readme = "README.md"
+keywords = ["claude-code", "gemini-cli", "codex", "tui", "agents"]
+categories = ["command-line-utilities", "development-tools"]
+
+[dependencies]
+anyhow = "1.0.104"
+chrono = { version = "0.4.45", features = ["serde"] }
+chrono-tz = "0.10.4"
+clap = { version = "4.6.7", features = ["derive"] }
+crossterm = "0.29"
+notify-rust = "4.18.0"
+ratatui = "0.30"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.11.0"
+
+[dev-dependencies]
+tempfile = "3.27.0"
