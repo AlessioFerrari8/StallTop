@@ -1,9 +1,8 @@
 //! Core data types shared by providers, status logic, alerts and the UI
 
-use chrono::{Date, DateTime, Local, NaiveDate, Utc};
+use chrono::{DateTime, Local, NaiveDate, Utc};
 use serde::Serialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
-use std::ops::Add;
 use std::path::PathBuf;
 
 /// How many events a session keeps for the detail view
@@ -335,7 +334,7 @@ mod tests {
         assert_eq!(a.events.len(), MAX_EVENTS);
         assert_eq!(a.events.front().unwrap().text, "10");
         assert_eq!(a.first_activity, Some(t(12, 0)));
-        assert_eq!(a.last_activity, Some(t(12, 9)));
+        assert_eq!(a.last_activity, Some(t(12, 29)));
     }
 
     #[test]
