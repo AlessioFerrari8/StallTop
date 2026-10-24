@@ -20,7 +20,7 @@ pub fn parse_limit(text: &str, seen_at: DateTime<Utc>) -> Option<LimitHit> {
     let kind = if kind.is_empty() { "usage" } else { kind }.to_string();
     Some(LimitHit {
         kind,
-        reset_at: parse_reset(&lower, seen_at)
+        reset_at: parse_reset(&lower, seen_at),
     })
 }
 
@@ -37,7 +37,7 @@ fn parse_reset(lower: &str, seen_at: DateTime<Utc>) -> Option<DateTime<Utc>> {
         Some((d, t)) => (Some(d.trim()), t.trim()),
         None => (None, when),
     };
-    
+
     let time = parse_clock(time_part)?;
     let local_seen = seen_at.with_timezone(&tz);
 
@@ -86,7 +86,7 @@ fn parse_monthy_day(s: &str, year: i32) -> Option<NaiveDate> {
     NaiveDate::from_ymd_opt(year, month, day.trim().parse().ok()?)
 }
 
-/// The message was lowercased for matching; IANA names need their casing back ("europe/rome" -> "Europe/Rome", 
+/// The message was lowercased for matching; IANA names need their casing back ("europe/rome" -> "Europe/Rome",
 /// "america/new_york" -> "America/New_York").
 fn restore_tz_case(tz: &str) -> String {
     let tz = tz.trim();
