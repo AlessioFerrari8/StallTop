@@ -26,7 +26,6 @@ impl Agent {
     }
 }
 
-
 /// Token counters. Gemini "thoughts" are billed as output and are added there
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize)]
 pub struct TokenUsage {
@@ -57,7 +56,7 @@ pub enum Status {
     /// Waiting on a human (permission prompt, question, dialog)
     NeedsYou {
         what: String,
-        reset_at: DateTime<Utc>,
+        since: DateTime<Utc>,
     },
     /// Hit a usage limit. `reset_at` is None when the reset time could not be parsed
     RateLimited {
@@ -109,9 +108,9 @@ impl Status {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum EventKind {
-    Prompt, 
+    Prompt,
     Tool,
-    Reply, 
+    Reply,
     Error,
 }
 
@@ -125,7 +124,7 @@ pub struct Event {
 /// Tokens and cost of one local calendar day
 #[derive(Debug, Clone, Copy, Default, PartialEq, Serialize)]
 pub struct DayTotals {
-    pub tokens: TokenUsage, 
+    pub tokens: TokenUsage,
     pub cost_usd: f64,
     // Messages whose model has no known price (their cost is not in `cost_usd`)
     pub unpriced_messages: u64,
@@ -145,7 +144,7 @@ impl DayTotals {
 pub struct Activity {
     pub title: Option<String>,
     pub model: Option<String>,
-    pub tokens: TokenUsage, 
+    pub tokens: TokenUsage,
     pub cost_usd: f64,
     pub unpriced_messages: u64,
     pub last_tool: Option<String>,
@@ -217,8 +216,7 @@ impl Activity {
 
     pub fn day(&self, date: NaiveDate) -> DayTotals {
         self.days.get(&date).copied().unwrap_or_default()
-    } 
-
+    }
 }
 
 /// One row of the table
@@ -234,7 +232,7 @@ pub struct Session {
     pub status: Status,
     pub started_at: DateTime<Utc>,
     pub last_activity: DateTime<Utc>,
-    pub tokens: TokenUsage, 
+    pub tokens: TokenUsage,
     // none when at least one message used a model with no known price
     pub cost_usd: Option<f64>,
     pub last_tool: Option<String>,
@@ -242,7 +240,7 @@ pub struct Session {
     pub files_touched: BTreeSet<PathBuf>,
     pub recent_events: Vec<Event>,
     // tokens x minute for the last 60 minutes, oldest first
-    pub tokens_per_minute: Vec<u64>
+    pub tokens_per_minute: Vec<u64>,
 }
 
 impl Session {
@@ -349,13 +347,13 @@ mod tests {
         a.add_usage(t(12, 0), &u, Some(1.0));
         a.add_usage(t(12, 1), &u, None);
         let s = into_session(
-            Agent::Claude, 
-            "x", 
-            None, 
-            "/p/demo".as_ref(), 
-            t(11, 0), 
-            Status::Idle, 
-            &a, 
+            Agent::Claude,
+            "x",
+            None,
+            "/p/demo".as_ref(),
+            t(11, 0),
+            Status::Idle,
+            &a,
             t(12, 2),
         );
         assert_eq!(s.cost_usd, None);
