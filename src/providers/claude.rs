@@ -345,7 +345,7 @@ impl ClaudeProvider {
         }
     }
 
-    fn find_trancsript(&self, session_id: &str) -> Option<PathBuf> {
+    fn find_transcript(&self, session_id: &str) -> Option<PathBuf> {
         let file = format!("{session_id}.jsonl");
         std::fs::read_dir(self.root.join("projects"))
             .ok()?
@@ -357,7 +357,7 @@ impl ClaudeProvider {
     /// Reads new lines of a session's transcript and of its subagents' transcripts
     fn refresh(&mut self, session_id: &str) {
         let missing = self.transcripts.get(session_id).is_none_or(|t| t.main.is_none());
-        let found = missing.then(|| self.find_trancsript(session_id)).flatten();
+        let found = missing.then(|| self.find_transcript(session_id)).flatten();
         let t = self.transcripts.entry(session_id.to_string()).or_default();
 
         if let Some(p) = found {

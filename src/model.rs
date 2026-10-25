@@ -198,7 +198,7 @@ impl Activity {
     }
 
     /// Adds another activity's usage (tokens, cost, x-minute and x-day counters) and its time span
-    /// Used to fold subagent trancsripts into their parent session
+    /// Used to fold subagent transcripts into their parent session
     pub fn merge_usage(&mut self, other: &Activity) {
         for t in [other.first_activity, other.last_activity].into_iter().flatten() {
             self.touch(t);
