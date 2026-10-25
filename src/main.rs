@@ -16,6 +16,12 @@ struct Args {
     /// Refresh interval in ms
     #[arg(long, default_value_t = 1000, value_parser = clap::value_parser!(u64).range(100..))]
     interval: u64,
+    /// Do not send desktop notifications
+    #[arg(long)]
+    no_notify: bool,
+    /// Do not ring the terminal bell on alerts
+    #[arg(long)]
+    no_bell: bool,
     /// Read agent data from this directory instead of $HOME
     #[arg(long)]
     home: Option<PathBuf>,
@@ -28,13 +34,18 @@ fn main() -> Result<()> {
     let args = Args::parse();
     let mut providers = default_providers(&Roots::resolve(args.home.as_deref()));
 
+    if args.once {
+        let snap = collect(&mut providers, &LinuxProcs, Utc::now());
+        println!("{}", plain(&snap));
+        return Ok(());
+    }
+
+    // notifiche, TODO
+
     // without --once the table is printed again every interval
     loop {
         let snap = collect(&mut providers, &LinuxProcs, Utc::now());
         println!("{}", plain(&snap));
-        if args.once {
-            return Ok(());
-        }
         std::thread::sleep(Duration::from_millis(args.interval));
     }
 }
