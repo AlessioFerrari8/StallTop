@@ -3,10 +3,10 @@ name = "stalltop"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.88"
-description = "htop for your AI coding agents"
+description = "htop for your AI coding agents - and it tells you which one is stuck"
 license = "MIT"
 readme = "README.md"
-keywords = ["claude-code", "gemini-cli", "codex", "tui", "agents"]
+keywords = ["claude-code", "tui", "agents", "monitoring", "htop"]
 categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
