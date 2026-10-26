@@ -11,6 +11,7 @@ StallTop lists every live Claude Code session on your machine, shows what each o
 - **Rate-limited**: a session hit a usage limit. You see the reset time and a countdown
 - **Quiet**: a session says it is busy but has not written anything for 5 mins
 - Tokens and API-equivalent cost per session
+- A desktop notification and a terminal bell when a session starts needing you
 
 It only reads the files Claude Code already writes on your disk. Nothing to configure, nothing to install inside Claude Code, no network access.
 
@@ -40,12 +41,12 @@ cargo install --path .
     stalltop          # live view
     stalltop --once   # print one snapshot and exit
 
-Keys: `↑` `↓` / `k` `j` select, `q` / `Esc` / `Ctrl-C` quit.
-Flags: `--interval <ms>` (default 1000), `--home <dir>`, `--once`.
+Keys: `↑` `↓` / `k` `j` select, `q` / `Esc` / `Ctrl-C` quit, `n` toggles notifications.
+Flags: `--interval <ms>` (default 1000), `--no-notify`, `--no-bell`, `--home <dir>`, `--once`.
 
 ## Roadmap
 
-Desktop notifications, Gemini CLI, Codex CLI, Agy
+Gemini CLI, Codex CLI, Agy
 
 ## License
 

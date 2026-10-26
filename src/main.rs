@@ -1,13 +1,17 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use chrono::Utc;
 use clap::Parser;
+use crossterm::event::{self, Event, KeyEventKind};
+use stalltop::app::{Action, App};
 use stalltop::fmt;
-use stalltop::model::Snapshot;
+use stalltop::model::{Snapshot, Status};
 use stalltop::procfs::LinuxProcs;
-use stalltop::providers::{Roots, clip, collect, default_providers};
+use stalltop::providers::{Provider, Roots, clip, collect, default_providers};
+use stalltop::ui;
 
 /// htop for your AI coding agents - and it tells you which one is stuck
 #[derive(Parser)]
@@ -40,13 +44,59 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    // notifiche, TODO
+    let mut terminal = ratatui::init();
+    let result = run(&mut terminal, &mut providers, &args);
+    ratatui::restore();
+    result
+}
 
-    // without --once the table is printed again every interval
+fn run(terminal: &mut ratatui::DefaultTerminal, providers: &mut [Box<dyn Provider>], args: &Args) -> Result<()> {
+    let interval = Duration::from_millis(args.interval);
+    let mut app = App::new(!args.no_notify, Utc::now());
+    let mut alerted: HashSet<String> = HashSet::new();
+    let mut next_poll = Instant::now();
     loop {
-        let snap = collect(&mut providers, &LinuxProcs, Utc::now());
-        println!("{}", plain(&snap));
-        std::thread::sleep(Duration::from_millis(args.interval));
+        if Instant::now() >= next_poll {
+            let snap = collect(providers, &LinuxProcs, Utc::now());
+            alert(&mut app, &mut alerted, &snap, args);
+            app.set_snapshot(snap);
+            next_poll = Instant::now() + interval;
+        }
+        terminal.draw(|f| ui::render(f, &app, Utc::now()))?;
+        let wait = next_poll
+            .saturating_duration_since(Instant::now())
+            .min(Duration::from_millis(250));
+        if event::poll(wait)?
+            && let Event::Key(key) = event::read()?
+            && key.kind == KeyEventKind::Press
+            && app.on_key(key) == Action::Quit
+        {
+            return Ok(());
+        }
+    }
+}
+
+/// Flashes, rings and notifies once for every session that starts needing attention
+fn alert(app: &mut App, alerted: &mut HashSet<String>, snap: &Snapshot, args: &Args) {
+    let stuck: Vec<_> = snap
+        .sessions
+        .iter()
+        .filter(|s| matches!(s.status, Status::NeedsYou { .. } | Status::RateLimited { .. }))
+        .collect();
+    alerted.retain(|k| stuck.iter().any(|s| &s.key() == k));
+    for s in stuck {
+        if !alerted.insert(s.key()) {
+            continue;
+        }
+        let msg = format!("{}: {}", s.project, fmt::status_detail(&s.status, snap.at));
+        app.flash = Some((msg.clone(), snap.at));
+        if !args.no_bell {
+            print!("\x07");
+        }
+        if app.notify {
+            // a missing notification daemon must not stop the monitor
+            let _ = notify_rust::Notification::new().summary("stalltop").body(&msg).show();
+        }
     }
 }
 
