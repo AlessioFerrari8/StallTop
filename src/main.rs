@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
@@ -6,9 +5,11 @@ use anyhow::Result;
 use chrono::Utc;
 use clap::Parser;
 use crossterm::event::{self, Event, KeyEventKind};
+use stalltop::alerts::Alerter;
 use stalltop::app::{Action, App};
 use stalltop::fmt;
-use stalltop::model::{Snapshot, Status};
+use stalltop::model::Snapshot;
+use stalltop::notify::Notifier;
 use stalltop::procfs::LinuxProcs;
 use stalltop::providers::{Provider, Roots, clip, collect, default_providers};
 use stalltop::ui;
@@ -53,12 +54,22 @@ fn main() -> Result<()> {
 fn run(terminal: &mut ratatui::DefaultTerminal, providers: &mut [Box<dyn Provider>], args: &Args) -> Result<()> {
     let interval = Duration::from_millis(args.interval);
     let mut app = App::new(!args.no_notify, Utc::now());
-    let mut alerted: HashSet<String> = HashSet::new();
+    let mut alerter = Alerter::default();
+    let mut notifier = Notifier {
+        desktop: app.notify,
+        bell: !args.no_bell,
+    };
     let mut next_poll = Instant::now();
     loop {
         if Instant::now() >= next_poll {
             let snap = collect(providers, &LinuxProcs, Utc::now());
-            alert(&mut app, &mut alerted, &snap, args);
+            // `n` can flip notifications at any time
+            notifier.desktop = app.notify;
+            for alert in alerter.update(&snap.sessions, snap.at) {
+                notifier.send(&alert);
+                let (title, body) = alert.message();
+                app.flash = Some((format!("{title}: {body}"), snap.at));
+            }
             app.set_snapshot(snap);
             next_poll = Instant::now() + interval;
         }
@@ -72,30 +83,6 @@ fn run(terminal: &mut ratatui::DefaultTerminal, providers: &mut [Box<dyn Provide
             && app.on_key(key) == Action::Quit
         {
             return Ok(());
-        }
-    }
-}
-
-/// Flashes, rings and notifies once for every session that starts needing attention
-fn alert(app: &mut App, alerted: &mut HashSet<String>, snap: &Snapshot, args: &Args) {
-    let stuck: Vec<_> = snap
-        .sessions
-        .iter()
-        .filter(|s| matches!(s.status, Status::NeedsYou { .. } | Status::RateLimited { .. }))
-        .collect();
-    alerted.retain(|k| stuck.iter().any(|s| &s.key() == k));
-    for s in stuck {
-        if !alerted.insert(s.key()) {
-            continue;
-        }
-        let msg = format!("{}: {}", s.project, fmt::status_detail(&s.status, snap.at));
-        app.flash = Some((msg.clone(), snap.at));
-        if !args.no_bell {
-            print!("\x07");
-        }
-        if app.notify {
-            // a missing notification daemon must not stop the monitor
-            let _ = notify_rust::Notification::new().summary("stalltop").body(&msg).show();
         }
     }
 }
