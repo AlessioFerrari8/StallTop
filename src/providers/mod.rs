@@ -2,7 +2,7 @@
 
 pub mod claude;
 // pub mod codex;
-// pub mod gemini;
+pub mod gemini;
 
 use crate::model::{DayTotals, ProviderState, Session, Snapshot};
 use crate::procfs::ProcessTable;
