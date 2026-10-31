@@ -629,10 +629,81 @@ impl super::Provider for GeminiProvider {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::procfs::FakeProcs;
-//     use crate::providers::Provider;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-// }
+    const START: &str = r#"{"sessionId":"s1","projectHash":"abc","startTime":"2026-10-30T10:00:00Z"}"#;
+    const USER: &str = r#"{"id":"m1","timestamp":"2026-10-30T10:00:01Z","type":"user","content":"fix the bug"}"#;
+    const REPLY: &str = r#"{"id":"m2","timestamp":"2026-10-30T10:00:05Z","type":"gemini","model":"gemini-3.7-flash","content":"done","tokens":{"input":1000,"output":200,"thoughts":50,"cached":400},"toolCalls":[{"name":"write_file","args":{"file_path":"/p/src/main.rs"}}]}"#;
+    
+    fn log(lines: &[&str]) -> ChatLog {
+        let mut l = ChatLog::default();
+        for line in lines {
+            l.ingest(line);
+        }
+        l
+    }
+
+    fn argv(a: &[&str]) -> Vec<String> {
+        a.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn counts_token_model_and_cost() {
+        let a = log(&[START, USER, REPLY]).chat().activity;
+        assert_eq!(a.tokens.input, 600); // input - cached
+        assert_eq!(a.tokens.output, 250); // output + thoughts
+        assert_eq!(a.tokens.cache_read, 400); 
+        assert_eq!(a.model.as_deref(), Some("gemini-3.7-flash")); 
+        assert!(a.cost_usd > 0.0);
+    }
+
+    #[test]
+    fn tracks_tool_calls_and_written_files() {
+        let a = log(&[START, USER, REPLY]).chat().activity;
+        assert_eq!(a.last_tool.as_deref(), Some("write_file main.rs"));
+        assert_eq!(a.tool_counts["write_file"], 1);
+        assert!(a.files_touched.contains(Path::new("/p/src/main.rs")));
+    }
+
+    #[test]
+    fn same_id_replaces_instead_of_double_counting() {
+        let a = log(&[START, USER, REPLY, REPLY]).chat().activity;
+        assert_eq!(a.tokens.output, 250);
+    }
+
+    #[test]
+    fn rewind_drops_later_messages() {
+        let rewind = r#"{"$rewindTo":"m2"}"#;
+        let a = log(&[START, USER, REPLY, rewind]).chat().activity;
+        assert_eq!(a.tokens.total(), 0);
+    }
+
+    #[test]
+    fn garbage_lines_are_counted_not_fatal() {
+        let l = log(&[START, "not json", r#"{"foo":1}"#, USER]);
+        assert_eq!(l.skipped_lines, 2);
+        assert_eq!(l.chat().session_id.as_deref(), Some("s1"));
+    }
+
+    #[test]
+    fn legacy_json_chat_parses() {
+        let json = r#"{"sessionId":"old","startTime":"2026-10-30T10:00:00Z","messages":[{"id":"m1","timestamp":"2026-10-30T10:00:05Z","type":"gemini","model":"gemini-3.7-flash","content":"hi","tokens":{"input":10,"output":5}}]}"#;
+        let c = parse_chat(json).unwrap();
+        assert_eq!(c.session_id.as_deref(), Some("old"));
+        assert_eq!(c.activity.tokens.output, 5);
+        assert!(parse_chat("{\"sessionId\":").is_none()); // caught mid-write
+    }
+
+    #[test]
+    fn recognises_gemini_processes() {
+        assert!(is_gemini(&argv(&["/usr/bin/gemini"])));
+        assert!(is_gemini(&argv(&[
+            "node",
+            "/usr/lib/node_modules/@google/gemini-cli/dist/index.js"
+        ])));
+        assert!(!is_gemini(&argv(&["node", "server.js"])));
+        assert!(!is_gemini(&[]));
+    }
+}
