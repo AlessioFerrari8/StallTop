@@ -1,7 +1,7 @@
 //! Agent-specific data readers. Each provider turns local files into Sessions
 
 pub mod claude;
-// pub mod codex;
+pub mod codex;
 pub mod gemini;
 
 use crate::model::{DayTotals, ProviderState, Session, Snapshot};
@@ -25,7 +25,7 @@ pub trait Provider {
 /// Where each agent keeps its data
 pub struct Roots {
     pub claude: PathBuf,
-    // pub gemini: PathBuf,
+    pub gemini: PathBuf,
     // pub codex: PathBuf,
 }
 
@@ -36,7 +36,7 @@ impl Roots {
         match home {
             Some(h) => Self {
                 claude: h.join(".claude"),
-                // gemini: h.join(".gemini"),
+                gemini: h.join(".gemini"),
                 // codex: h.join(".codex"),
             },
             None => {
@@ -51,7 +51,7 @@ impl Roots {
                 //     .unwrap_or_else(|| h.join(".codex"));
                 Self {
                     claude,
-                    // gemini: h.join(".gemini"),
+                    gemini: h.join(".gemini"),
                     // codex,
                 }
             }
@@ -62,7 +62,7 @@ impl Roots {
 pub fn default_providers(roots: &Roots) -> Vec<Box<dyn Provider>> {
     vec![
         Box::new(claude::ClaudeProvider::new(roots.claude.clone())),
-        // Box::new(gemini::GeminiProvider::new(roots.gemini.clone())),
+        Box::new(gemini::GeminiProvider::new(roots.gemini.clone())),
         // Box::new(codex::CodexProvider::new(roots.codex.clone())),
     ]
 }
