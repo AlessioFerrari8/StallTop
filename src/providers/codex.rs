@@ -2,12 +2,24 @@
 //! `sessions/YYYY/MM/DD/rollout-*.jsonl`. See docs/DATA-SOURCES.md. Codex does
 //! not persist approval prompts, so sessions are working / idle / limited / ended
 
-use std::{collections::{HashMap, HashSet}, path::{Path, PathBuf}, time::SystemTime};
+use std::{
+    collections::{HashMap, HashSet},
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use serde_json::Value;
 
-use crate::{limits::LimitHit, model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session}, pricing::cost_usd, procfs::{ProcInfo, ProcessTable}, providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime}, status::{codex_status, keep_dead}, tail::JsonlTail};
+use crate::{
+    limits::LimitHit,
+    model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session},
+    pricing::cost_usd,
+    procfs::{ProcInfo, ProcessTable},
+    providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime},
+    status::{codex_status, keep_dead},
+    tail::JsonlTail,
+};
 
 /// Subcommands that do not run a session in the process' directory
 const NOT_SESSIONS: [&str; 12] = [
@@ -25,11 +37,10 @@ const NOT_SESSIONS: [&str; 12] = [
     "agents",
 ];
 
-
 // Codex counters are cumulative for the thread. Each update is turned into the
 // difference with the previous one, so repeated or duplicated records (a `token_count`)
 // event and a `token_usage_record` for the same response) bill nothing
-#[derive(Debug, Clone, Copy, Default, PartialEq)] 
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
 struct Counters {
     input: u64,
     cached: u64,
@@ -60,21 +71,21 @@ impl Counters {
         if self.total() < prev.total() {
             return *self;
         }
-        Counters { 
-            input: self.input.saturating_sub(prev.input), 
-            cached: self.cached.saturating_sub(prev.cached), 
-            cache_write: self.cache_write.saturating_sub(prev.cache_write), 
-            output: self.output.saturating_sub(prev.output), 
+        Counters {
+            input: self.input.saturating_sub(prev.input),
+            cached: self.cached.saturating_sub(prev.cached),
+            cache_write: self.cache_write.saturating_sub(prev.cache_write),
+            output: self.output.saturating_sub(prev.output),
         }
     }
 
     /// `input_tokens` includes cached input and cache writes. Reasoning tokens are part of `output_tokens`
     fn usage(&self) -> TokenUsage {
-        TokenUsage { 
-            input: self.input.saturating_sub(self.cached + self.cache_write), 
-            output: self.output, 
-            cache_write_5m: self.cache_write, 
-            cache_write_1h: self.cached, 
+        TokenUsage {
+            input: self.input.saturating_sub(self.cached + self.cache_write),
+            output: self.output,
+            cache_write_5m: self.cache_write,
+            cache_write_1h: self.cached,
             ..Default::default()
         }
     }
@@ -165,7 +176,7 @@ impl Rollout {
                 };
                 a.push_event(Event {
                     at: ts,
-                    kind, 
+                    kind,
                     text: clip(&text, 120),
                 });
             }
@@ -217,7 +228,6 @@ fn tool(a: &mut Activity, ts: DateTime<Utc>, name: &str, desc: String) {
         text: desc,
     });
 }
-
 
 /// `["bash","-lc","cargo test"]` -> `cargo test`; a plain string as is
 fn command(v: &Value) -> Option<String> {
@@ -277,7 +287,7 @@ fn message_text(c: &Value) -> String {
         .unwrap_or_default()
 }
 
-/// Codex also stores injected context as user messages: the env block, AGENTS.md and other instructions, all 
+/// Codex also stores injected context as user messages: the env block, AGENTS.md and other instructions, all
 /// starting with a tag or a heading
 fn is_prompt(text: &str) -> bool {
     let t = text.trim_start();
@@ -313,14 +323,17 @@ pub fn is_codex(argv: &[String]) -> bool {
     let Some(first) = argv.first() else { return false };
     let (cmd, rest) = if base(first) == "codex" {
         (true, &argv[1..])
-    } else if super::gemini::is_runtime(&base(first)) && argv.get(1).is_some_and(|a| matches!(base(a).as_str(), "codex" | "codex.js") || a.contains("@openai/codex")) {
+    } else if super::gemini::is_runtime(&base(first))
+        && argv
+            .get(1)
+            .is_some_and(|a| matches!(base(a).as_str(), "codex" | "codex.js") || a.contains("@openai/codex"))
+    {
         (true, &argv[2..])
     } else {
         (false, &argv[..0])
     };
     cmd && rest.first().is_none_or(|a| !NOT_SESSIONS.contains(&a.as_str()))
 }
-
 
 /// `sessions/YYYY/MM/DD` for a local date: where Codex creates new rollouts
 pub fn day_dir(sessions: &Path, day: NaiveDate) -> PathBuf {
@@ -395,8 +408,8 @@ impl CodexProvider {
             return;
         };
         let c = self.rollouts.entry(path.to_path_buf()).or_insert_with(|| Cached {
-            modified, 
-            tail: JsonlTail::new(path), 
+            modified,
+            tail: JsonlTail::new(path),
             rollout: Rollout::default(),
         });
         if c.modified == modified && c.rollout.thread_id.is_some() {
@@ -435,7 +448,8 @@ impl CodexProvider {
         self.rollouts
             .iter()
             .filter(|(p, c)| {
-                self.seen.values().any(|s| s.rollout.as_ref() == Some(*p)) || c.rollout.parent.as_deref().is_some_and(|id| ids.contains(id))
+                self.seen.values().any(|s| s.rollout.as_ref() == Some(*p))
+                    || c.rollout.parent.as_deref().is_some_and(|id| ids.contains(id))
             })
             .map(|(p, _)| p.clone())
             .collect()
@@ -470,7 +484,7 @@ impl CodexProvider {
             e.rollout = rollout;
             e.dead_since = None;
         }
-        for (pid, s)  in self.seen.iter_mut() {
+        for (pid, s) in self.seen.iter_mut() {
             if s.dead_since.is_none() && !running.iter().any(|p| p.pid == *pid) {
                 s.dead_since = Some(now);
             }
@@ -485,7 +499,7 @@ impl CodexProvider {
         order.sort_by_key(|(pid, s)| (s.dead_since.is_some(), s.proc_start, **pid));
         let empty = Rollout::default();
         let mut claimed = HashSet::new();
-        let mut sessions: Vec<Session>  = order
+        let mut sessions: Vec<Session> = order
             .into_iter()
             .map(|(pid, s)| {
                 let owned = s
@@ -555,9 +569,9 @@ impl super::Provider for CodexProvider {
         for c in self.rollouts.values() {
             today.add(&c.rollout.activity.day(day));
         }
-        ProviderReport { 
-            sessions: self.sessions(now), 
-            today, 
+        ProviderReport {
+            sessions: self.sessions(now),
+            today,
             state: ProviderState {
                 name: "codex",
                 found,
