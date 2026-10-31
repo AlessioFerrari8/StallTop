@@ -14,6 +14,7 @@ pub enum Agent {
     Claude,
     Gemini,
     Codex,
+    Antigravity,
 }
 
 impl Agent {
@@ -22,6 +23,7 @@ impl Agent {
             Agent::Claude => "claude",
             Agent::Gemini => "gemini",
             Agent::Codex => "codex",
+            Agent::Antigravity => "agy",
         }
     }
 }

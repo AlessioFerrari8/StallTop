@@ -3,6 +3,7 @@
 pub mod claude;
 pub mod codex;
 pub mod gemini;
+pub mod antigravity;
 
 use crate::model::{DayTotals, ProviderState, Session, Snapshot};
 use crate::procfs::ProcessTable;
@@ -26,7 +27,8 @@ pub trait Provider {
 pub struct Roots {
     pub claude: PathBuf,
     pub gemini: PathBuf,
-    // pub codex: PathBuf,
+    pub codex: PathBuf,
+    pub antigravity: PathBuf,
 }
 
 impl Roots {
@@ -37,7 +39,8 @@ impl Roots {
             Some(h) => Self {
                 claude: h.join(".claude"),
                 gemini: h.join(".gemini"),
-                // codex: h.join(".codex"),
+                codex: h.join(".codex"),
+                antigravity: h.join(".gemini/antigravity-cli"),
             },
             None => {
                 let h = std::env::var_os("HOME")
@@ -46,13 +49,14 @@ impl Roots {
                 let claude = std::env::var_os("CLAUDE_CONFIG_DIR")
                     .map(PathBuf::from)
                     .unwrap_or_else(|| h.join(".claude"));
-                // let codex = std::env::var_os("CODEX_HOME")
-                //     .map(PathBuf::from)
-                //     .unwrap_or_else(|| h.join(".codex"));
+                let codex = std::env::var_os("CODEX_HOME")
+                    .map(PathBuf::from)
+                    .unwrap_or_else(|| h.join(".codex"));
                 Self {
                     claude,
                     gemini: h.join(".gemini"),
-                    // codex,
+                    codex,
+                    antigravity: h.join(".gemini/antigravity-cli")
                 }
             }
         }
@@ -63,7 +67,8 @@ pub fn default_providers(roots: &Roots) -> Vec<Box<dyn Provider>> {
     vec![
         Box::new(claude::ClaudeProvider::new(roots.claude.clone())),
         Box::new(gemini::GeminiProvider::new(roots.gemini.clone())),
-        // Box::new(codex::CodexProvider::new(roots.codex.clone())),
+        Box::new(codex::CodexProvider::new(roots.codex.clone())),
+        Box::new(antigravity::AntigravityProvider::new(roots.antigravity.clone())),
     ]
 }
 
@@ -136,5 +141,8 @@ mod tests {
     fn home_override() {
         let r = Roots::resolve(Some(Path::new("/tmp/h")));
         assert_eq!(r.claude, Path::new("/tmp/h/.claude"));
+        assert_eq!(r.gemini, Path::new("/tmp/h/.gemini"));
+        assert_eq!(r.codex, Path::new("/tmp/h/.codex"));
+        assert_eq!(r.antigravity, Path::new("/tmp/h/.gemini/antigravity-cli"));
     }
 }
