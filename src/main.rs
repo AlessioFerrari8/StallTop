@@ -90,12 +90,13 @@ fn run(terminal: &mut ratatui::DefaultTerminal, providers: &mut [Box<dyn Provide
 /// A ps-like table
 fn plain(snap: &Snapshot) -> String {
     let mut out = format!(
-        "{:<20} {:<10} {:<14} {:>7} {:>8} {:>6}  DETAIL\n",
-        "PROJECT", "STATUS", "MODEL", "TOKENS", "COST", "AGE"
+        "{:<7} {:<20} {:<10} {:<14} {:>7} {:>8} {:>6}  DETAIL\n",
+        "AGENT", "PROJECT", "STATUS", "MODEL", "TOKENS", "COST", "AGE"
     );
     for s in &snap.sessions {
         out += &format!(
-            "{:<20} {:<10} {:<14} {:>7} {:>8} {:>6}  {}\n",
+            "{:<7} {:<20} {:<10} {:<14} {:>7} {:>8} {:>6}  {}\n",
+            s.agent.label(),
             clip(&s.project, 20),
             s.status.label(),
             fmt::model(s.model.as_deref()),

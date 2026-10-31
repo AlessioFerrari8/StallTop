@@ -126,7 +126,7 @@ fn render_needs_you(f: &mut Frame, area: Rect, stuck: &[&Session], now: DateTime
 
 fn render_table(f: &mut Frame, area: Rect, sessions: &[Session], selected: usize, now: DateTime<Utc>) {
     let wide = area.width >= WIDE;
-    let mut head = vec!["PROJECT", "STATUS", "MODEL"];
+    let mut head = vec!["AGENT", "PROJECT", "STATUS", "MODEL"];
     if wide {
         head.push("LAST TOOL");
     }
@@ -134,6 +134,7 @@ fn render_table(f: &mut Frame, area: Rect, sessions: &[Session], selected: usize
 
     let rows = sessions.iter().map(|s| {
         let mut cells = vec![
+            Cell::from(s.agent.label()),
             Cell::from(s.project.clone()),
             Cell::from(Span::styled(s.status.label(), status_style(&s.status))),
             Cell::from(fmt::model(s.model.as_deref())),
@@ -154,7 +155,13 @@ fn render_table(f: &mut Frame, area: Rect, sessions: &[Session], selected: usize
         }
     });
 
-    let mut widths = vec![Constraint::Min(12), Constraint::Length(10), Constraint::Length(14)];
+    let mut widths = vec![
+        Constraint::Length(7),
+        Constraint::Min(12),
+        Constraint::Length(10),
+        Constraint::Length(14),
+    ];
+
     if wide {
         widths.push(Constraint::Min(16));
     }
