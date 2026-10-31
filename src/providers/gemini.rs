@@ -1,6 +1,6 @@
 //! Gemini CLI: liveness from running processes, activity from the chat files in `tmp/<project id>/chats/`. Two chat formats exist: 
 //! append-only `session-*.jsonl` (Gemini CLI 0.60+) and whole-file `session-*.json` (older versions). See docs/DATA-SOURCES.md. 
-//! Gemini CLI does not expose a permission state, so sessions are only working / idle / dended
+//! Gemini CLI does not expose a permission state, so sessions are only working / idle / ended
 
 use std::{collections::{HashMap, HashSet}, path::{Path, PathBuf}, time::SystemTime};
 
@@ -8,7 +8,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::{model::{Activity, DayTotals, Event, EventKind, ProviderState, TokenUsage, into_session}, pricing::cost_usd, procfs::{ProcInfo, ProcessTable}, providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on}, status::{gemini_status, keep_dead}, tail::JsonlTail};
+use crate::{model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session}, pricing::cost_usd, procfs::{ProcInfo, ProcessTable}, providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime}, status::{gemini_status, keep_dead}, tail::JsonlTail};
 
 
 const WRITE_TOOLS: [&str; 3] = ["write_file", "replace", "edit"];
@@ -41,7 +41,7 @@ pub fn parse_chat(json: &str) -> Option<Chat> {
     Some(Chat::from_messages(
         v["sessionId"].as_str().map(String::from), 
         parse_time(&v["startTime"]), 
-        v["messages"].as_array().map(Vec::as_slice).unwrap_or(&[]))),
+        v["messages"].as_array().map(Vec::as_slice).unwrap_or(&[])))
 }
 
 /// Replays a `.jsonl` chat line by line, the way Gemini CLI's own loader (`loadConversationRecord`) does. Each line = one record
@@ -58,7 +58,7 @@ pub struct ChatLog {
 
 impl ChatLog {
     pub fn ingest(&mut self, line: &str) {
-        let Ok(v) = serde_json::from_str<Value>(line) else {
+        let Ok(v) = serde_json::from_str::<Value>(line) else {
             self.skipped_lines += 1;
             return;
         };
@@ -68,7 +68,7 @@ impl ChatLog {
             self.upsert(v);
         } else if v["$set"].is_object() {
             let set = &v["$set"];
-            selt.metadata(set);
+            self.metadata(set);
             if let Some(messages) = set["messages"].as_array() {
                 self.messages.clear();
                 self.index.clear();
@@ -162,7 +162,7 @@ fn add_message(a: &mut Activity, m: &Value) {
         Some("user") if !text.trim().is_empty() => a.push_event(Event {
             at: ts,
             kind: EventKind::Prompt,
-            text: clip(&test, 120),
+            text: clip(&text, 120),
         }),
         Some("gemini") => {
             let model = m["model"].as_str();
@@ -187,14 +187,14 @@ fn add_message(a: &mut Activity, m: &Value) {
                 a.push_event(Event {
                     at: ts,
                     kind: EventKind::Reply,
-                    text: clip(&test, 120),
+                    text: clip(&text, 120),
                 });
             }
         }
         Some("error") => a.push_event(Event {
             at: ts,
             kind: EventKind::Error,
-            text: clip(&test, 120),
+            text: clip(&text, 120),
         }),
         _ => a.touch(ts),
     }
@@ -455,7 +455,7 @@ impl GeminiProvider {
             .values()
             .flat_map(|s| s.chat_path.iter().chain(&s.subagents))
             .collect();
-        self.chats.retain(|p, | in_use.contains(p) || modified_on(p, day));
+        self.chats.retain(|p, _| in_use.contains(p) || modified_on(p, day));
         let Ok(dirs) = std::fs::read_dir(self.root.join("tmp")) else {
             return;
         };
@@ -477,7 +477,7 @@ impl GeminiProvider {
     }
 
     fn track(&mut self, running: &[&ProcInfo], now: DateTime<Utc>) {
-        let isd = self.read_projects();
+        let ids = self.read_projects();
         for p in running {
             let cwd = p.cwd.clone().expect("filtered by the caller");
             let chat_path = self.newest_chat(&cwd, &ids);
@@ -486,7 +486,7 @@ impl GeminiProvider {
             }
             let chat = chat_path.as_ref().and_then(|c| self.chats.get(c)).map(|c| &c.chat);
             let started_at = chat.and_then(|c| c.start_time).unwrap_or(now);
-            let subagent = match (&chat_path, chat.and_then(|c| c.session_id.as_deref())) {
+            let subagents = match (&chat_path, chat.and_then(|c| c.session_id.as_deref())) {
                 (Some(path), Some(id)) => subagent_chats(path, id),
                 _ => Vec::new(),
             };
@@ -503,7 +503,7 @@ impl GeminiProvider {
             });
             e.cwd = cwd;
             e.chat_path = chat_path;
-            e.subagents = subagent;
+            e.subagents = subagents;
             e.dead_since = None;
         }
 
@@ -623,10 +623,10 @@ impl super::Provider for GeminiProvider {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::procfs::FakeProcs;
-    use crate::providers::Provider;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use crate::procfs::FakeProcs;
+//     use crate::providers::Provider;
     
-}
+// }
