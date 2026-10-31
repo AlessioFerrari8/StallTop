@@ -1,19 +1,29 @@
-//! Gemini CLI: liveness from running processes, activity from the chat files in `tmp/<project id>/chats/`. Two chat formats exist: 
-//! append-only `session-*.jsonl` (Gemini CLI 0.60+) and whole-file `session-*.json` (older versions). See docs/DATA-SOURCES.md. 
+//! Gemini CLI: liveness from running processes, activity from the chat files in `tmp/<project id>/chats/`. Two chat formats exist:
+//! append-only `session-*.jsonl` (Gemini CLI 0.60+) and whole-file `session-*.json` (older versions). See docs/DATA-SOURCES.md.
 //! Gemini CLI does not expose a permission state, so sessions are only working / idle / ended
 
-use std::{collections::{HashMap, HashSet}, path::{Path, PathBuf}, time::SystemTime};
+use std::{
+    collections::{HashMap, HashSet},
+    path::{Path, PathBuf},
+    time::SystemTime,
+};
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 
-use crate::{model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session}, pricing::cost_usd, procfs::{ProcInfo, ProcessTable}, providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime}, status::{gemini_status, keep_dead}, tail::JsonlTail};
-
+use crate::{
+    model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session},
+    pricing::cost_usd,
+    procfs::{ProcInfo, ProcessTable},
+    providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime},
+    status::{gemini_status, keep_dead},
+    tail::JsonlTail,
+};
 
 const WRITE_TOOLS: [&str; 3] = ["write_file", "replace", "edit"];
 
-/// What stalltop knows about one chat, whaterver its format
+/// What stalltop knows about one chat, whatever its format
 #[derive(Debug, Clone, Default)]
 pub struct Chat {
     pub session_id: Option<String>,
@@ -39,9 +49,10 @@ impl Chat {
 pub fn parse_chat(json: &str) -> Option<Chat> {
     let v: Value = serde_json::from_str(json).ok()?;
     Some(Chat::from_messages(
-        v["sessionId"].as_str().map(String::from), 
-        parse_time(&v["startTime"]), 
-        v["messages"].as_array().map(Vec::as_slice).unwrap_or(&[])))
+        v["sessionId"].as_str().map(String::from),
+        parse_time(&v["startTime"]),
+        v["messages"].as_array().map(Vec::as_slice).unwrap_or(&[]),
+    ))
 }
 
 /// Replays a `.jsonl` chat line by line, the way Gemini CLI's own loader (`loadConversationRecord`) does. Each line = one record
@@ -116,11 +127,10 @@ impl ChatLog {
     }
 }
 
-
 /// Keeps only what `add_message` reads. A message record carries the full text of replies and tool arguments (whole files for
 /// `write_file`): a long chat would otherwise stay in memory in full
 fn compact(m: &Value) -> Value {
-    let calls: Vec<Value> = m["tooCalls"]
+    let calls: Vec<Value> = m["toolCalls"]
         .as_array()
         .map(Vec::as_slice)
         .unwrap_or(&[])
@@ -279,7 +289,7 @@ fn chat_files(dir: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Vec::new();
     };
-    entries 
+    entries
         .flatten()
         .map(|e| e.path())
         .filter(|p| p.extension().is_some_and(|e| e == "json" || e == "jsonl"))
@@ -291,7 +301,7 @@ fn sanitize(part: &str) -> String {
     part.chars()
         .map(|c| {
             if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
-                c 
+                c
             } else {
                 '_'
             }
@@ -306,17 +316,16 @@ pub fn subagent_chats(chat: &Path, session_id: &str) -> Vec<PathBuf> {
     chat_files(&dir.join(sanitize(session_id)))
         .into_iter()
         .filter(|p| p.extension().is_some_and(|e| e == "jsonl"))
-        .collect() 
+        .collect()
 }
-
 
 /// Every subanget chat under a `chats` directory, whatever its parent
 fn all_subagent_chats(chats: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(chats) else {
         return Vec::new();
     };
-    entries.
-        flatten()
+    entries
+        .flatten()
         .map(|e| e.path())
         .filter(|p| p.is_dir())
         .flat_map(|d| chat_files(&d))
@@ -424,7 +433,7 @@ impl GeminiProvider {
         let Ok(read) = tail.read_new() else { return };
         if read.reset {
             *log = ChatLog::default();
-        } 
+        }
         for line in &read.lines {
             log.ingest(line);
         }
@@ -473,7 +482,6 @@ impl GeminiProvider {
         for p in files {
             self.load(&p);
         }
-
     }
 
     fn track(&mut self, running: &[&ProcInfo], now: DateTime<Utc>) {
@@ -548,13 +556,13 @@ impl GeminiProvider {
                 let status = gemini_status(s.dead_since, last_write, now);
                 let id = chat.session_id.clone().unwrap_or_else(|| format!("pid-{pid}"));
                 into_session(
-                    Agent::Gemini, 
-                    &id, 
-                    Some(*pid), 
-                    &s.cwd, 
-                    s.started_at, 
-                    status, 
-                    &activity, 
+                    Agent::Gemini,
+                    &id,
+                    Some(*pid),
+                    &s.cwd,
+                    s.started_at,
+                    status,
+                    &activity,
                     now,
                 )
             })
@@ -562,9 +570,7 @@ impl GeminiProvider {
         sessions.sort_by(|a, b| a.id.cmp(&b.id));
         sessions
     }
-
 }
-
 
 /// Sums one day over every known chat, counting each session once: a legacy chat resumed by Gemini CLI 0.60 is copied to
 /// `<name>.jsonl`, and its storage migration copies whole project directories, so one session can be in several files.
@@ -597,7 +603,7 @@ impl super::Provider for GeminiProvider {
         let all = if found { procs.all() } else { Vec::new() };
         let gemini_pids: Vec<u32> = all.iter().filter(|p| is_gemini(&p.argv)).map(|p| p.pid).collect();
         // Skip helper processes whose parent is itself a Gemini CLI process
-        let running: Vec<&ProcInfo> = all   
+        let running: Vec<&ProcInfo> = all
             .iter()
             .filter(|p| gemini_pids.contains(&p.pid) && !gemini_pids.contains(&p.ppid) && p.cwd.is_some())
             .collect();
@@ -611,9 +617,9 @@ impl super::Provider for GeminiProvider {
                 Source::Whole => 0,
             })
             .sum();
-        ProviderReport { 
-            sessions: self.sessions(now), 
-            today: day_totals(self.chats.iter(), local_day(now)), 
+        ProviderReport {
+            sessions: self.sessions(now),
+            today: day_totals(self.chats.iter(), local_day(now)),
             state: ProviderState {
                 name: "gemini",
                 found,
@@ -628,5 +634,5 @@ impl super::Provider for GeminiProvider {
 //     use super::*;
 //     use crate::procfs::FakeProcs;
 //     use crate::providers::Provider;
-    
+
 // }
