@@ -3,12 +3,22 @@
 //! process and the conversations it created. Like Gemini CLI it exposes no permission state, so sessions are only working / idle / ended
 //! See docs/DATA-SOURCES.md
 
-use std::{collections::{HashMap, HashSet}, path::{Path, PathBuf}};
+use std::{
+    collections::{HashMap, HashSet},
+    path::{Path, PathBuf},
+};
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
 
-use crate::{model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session}, pricing::cost_usd, procfs::{ProcInfo, ProcessTable}, providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime}, status::{gemini_status, keep_dead}, tail::JsonlTail};
+use crate::{
+    model::{Activity, Agent, DayTotals, Event, EventKind, ProviderState, Session, TokenUsage, into_session},
+    pricing::cost_usd,
+    procfs::{ProcInfo, ProcessTable},
+    providers::{ProviderReport, RESCAN_EVERY, clip, local_day, modified_on, mtime},
+    status::{gemini_status, keep_dead},
+    tail::JsonlTail,
+};
 
 const WRITE_TOOLS: [&str; 4] = [
     "write_to_file",
@@ -131,22 +141,24 @@ fn add_tool_call(a: &mut Activity, call: &Value, ts: DateTime<Utc>) {
     });
 }
 
-
 /// Workspace and conversations of every `agy` process, from one `cli-*.log`: conversation id -> workspace directories
 pub fn parse_log(text: &str) -> HashMap<String, Vec<PathBuf>> {
     let mut workspaces: Vec<PathBuf> = Vec::new();
     let mut ids = Vec::new();
     for line in text.lines() {
-        if workspaces.is_empty() && let Some(list) = between(line, "workspaceDirs=[", "]") {
+        if workspaces.is_empty()
+            && let Some(list) = between(line, "workspaceDirs=[", "]")
+        {
             workspaces = list.split_whitespace().map(PathBuf::from).collect();
         }
-        if let Some(rest) = line.split_once("Created conversation ").map(|x| x.1) && let Some(id) = rest.split_whitespace().next() {
+        if let Some(rest) = line.split_once("Created conversation ").map(|x| x.1)
+            && let Some(id) = rest.split_whitespace().next()
+        {
             ids.push(id.to_string());
         }
     }
     ids.into_iter().map(|id| (id, workspaces.clone())).collect()
 }
-
 
 /// `agy` itself or a helper started by it
 pub fn is_agy(argv: &[String]) -> bool {
@@ -198,8 +210,8 @@ impl AntigravityProvider {
 
     fn load(&mut self, id: &str) {
         let path = self.transcript_path(id);
-        let c = self.transcripts.entry(id.to_string()).or_insert_with(|| Cached { 
-            tail: JsonlTail::new(&path), 
+        let c = self.transcripts.entry(id.to_string()).or_insert_with(|| Cached {
+            tail: JsonlTail::new(&path),
             transcript: Transcript::default(),
         });
         let Ok(read) = c.tail.read_new() else { return };
@@ -222,7 +234,6 @@ impl AntigravityProvider {
             }
         }
     }
-
 
     /// The most recently written transcript of a coversation started in `cwd`
     fn newest_conversation(&self, cwd: &Path) -> Option<String> {
@@ -252,7 +263,7 @@ impl AntigravityProvider {
         let today: Vec<String> = dirs
             .flatten()
             .filter_map(|d| d.file_name().into_string().ok())
-            .filter(|id| modified_on( &self.transcript_path(id), day))
+            .filter(|id| modified_on(&self.transcript_path(id), day))
             .collect();
         for id in today {
             self.load(&id);
@@ -300,19 +311,19 @@ impl AntigravityProvider {
                     .and_then(|id| self.transcripts.get(id))
                     .map(|c| &c.transcript)
                     .unwrap_or(&empty);
-                
+
                 let last_write = conv.and_then(|id| mtime(&self.transcript_path(id)));
                 let status = gemini_status(s.dead_since, last_write, now);
                 let id = conv.cloned().unwrap_or_else(|| format!("pid-{pid}"));
                 let started = transcript.activity.first_activity.unwrap_or(s.started_at);
                 into_session(
-                    Agent::Antigravity, 
-                    &id, 
-                    Some(*pid), 
-                    &s.cwd, 
-                    started, 
-                    status, 
-                    &transcript.activity, 
+                    Agent::Antigravity,
+                    &id,
+                    Some(*pid),
+                    &s.cwd,
+                    started,
+                    status,
+                    &transcript.activity,
                     now,
                 )
             })
@@ -344,9 +355,9 @@ impl super::Provider for AntigravityProvider {
         for c in self.transcripts.values() {
             today.add(&c.transcript.activity.day(day));
         }
-        ProviderReport { 
-            sessions: self.sessions(now), 
-            today, 
+        ProviderReport {
+            sessions: self.sessions(now),
+            today,
             state: ProviderState {
                 name: "antigravity",
                 found,

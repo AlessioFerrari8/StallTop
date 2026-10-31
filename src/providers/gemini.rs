@@ -636,7 +636,7 @@ mod tests {
     const START: &str = r#"{"sessionId":"s1","projectHash":"abc","startTime":"2026-10-30T10:00:00Z"}"#;
     const USER: &str = r#"{"id":"m1","timestamp":"2026-10-30T10:00:01Z","type":"user","content":"fix the bug"}"#;
     const REPLY: &str = r#"{"id":"m2","timestamp":"2026-10-30T10:00:05Z","type":"gemini","model":"gemini-3.7-flash","content":"done","tokens":{"input":1000,"output":200,"thoughts":50,"cached":400},"toolCalls":[{"name":"write_file","args":{"file_path":"/p/src/main.rs"}}]}"#;
-    
+
     fn log(lines: &[&str]) -> ChatLog {
         let mut l = ChatLog::default();
         for line in lines {
@@ -654,8 +654,8 @@ mod tests {
         let a = log(&[START, USER, REPLY]).chat().activity;
         assert_eq!(a.tokens.input, 600); // input - cached
         assert_eq!(a.tokens.output, 250); // output + thoughts
-        assert_eq!(a.tokens.cache_read, 400); 
-        assert_eq!(a.model.as_deref(), Some("gemini-3.7-flash")); 
+        assert_eq!(a.tokens.cache_read, 400);
+        assert_eq!(a.model.as_deref(), Some("gemini-3.7-flash"));
         assert!(a.cost_usd > 0.0);
     }
 

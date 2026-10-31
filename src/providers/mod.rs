@@ -1,9 +1,9 @@
 //! Agent-specific data readers. Each provider turns local files into Sessions
 
+pub mod antigravity;
 pub mod claude;
 pub mod codex;
 pub mod gemini;
-pub mod antigravity;
 
 use crate::model::{DayTotals, ProviderState, Session, Snapshot};
 use crate::procfs::ProcessTable;
@@ -56,7 +56,7 @@ impl Roots {
                     claude,
                     gemini: h.join(".gemini"),
                     codex,
-                    antigravity: h.join(".gemini/antigravity-cli")
+                    antigravity: h.join(".gemini/antigravity-cli"),
                 }
             }
         }
