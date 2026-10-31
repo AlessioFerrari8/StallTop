@@ -2,18 +2,28 @@
 
 **htop for your AI coding agents**
 
-![stalltop: two Claude Code sessions](demo/stalltop.gif)
+![stalltop: stalltop showing Claude, Gemini and Codex sessions](demo/stalltop.gif)
 
 You started four agents in four terminals. One has been waiting for you to approve `npm run build`, for nearly 20 minutes. Another hit its usage limit an hour ago and will sit there until you notice. 
-StallTop lists every live Claude Code session on your machine, shows what each one is doing and what it costs, and **pits the ones that need you on top**.
+StallTop lists every live AI coding agent session (Claude Code, Codex CLI, Gemini CLI, Antigravity CLI) on your machine, shows what each one is doing and what it costs, and **pits the ones that need you on top**.
 
 - **Needs you**: a session is waiting on a permission or a question
 - **Rate-limited**: a session hit a usage limit. You see the reset time and a countdown
 - **Quiet**: a session says it is busy but has not written anything for 5 mins
-- Tokens and API-equivalent cost per session
+- Cost is an API-equivalent estimate (Gemini cost: unknown for newer models)
 - A desktop notification and a terminal bell when a session starts needing you
 
-It only reads the files Claude Code already writes on your disk. Nothing to configure, nothing to install inside Claude Code, no network access.
+The `AGENT` column tells you which tool owns each session. All agents are shown in one list.
+
+It only reads the files your agents already write on your disk. Nothing to configure, nothing to install inside your agent, no network access.
+
+## Supported agents
+| Agent       | Status                                          |
+|-------------|-------------------------------------------------|
+| Claude Code | full: tokens, cost, permission and limit alerts |
+| Gemini CLI  | tokens, cost, working / idle / ended            |
+| Codex CLI   | tokens, cost, working / idle / ended (beta)     |
+| Antigravity | tokens, working / idle / ended                  |
 
 
 ## Install
@@ -46,7 +56,7 @@ Flags: `--interval <ms>` (default 1000), `--no-notify`, `--no-bell`, `--home <di
 
 ## Roadmap
 
-Gemini CLI, Codex CLI, Agy
+Opencode, Grok CLI, windows and macOS
 
 ## License
 
