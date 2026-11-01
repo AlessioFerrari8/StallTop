@@ -2,10 +2,10 @@
 
 **htop for your AI coding agents**
 
-![stalltop: stalltop showing Claude, Gemini and Codex sessions](demo/stalltop.gif)
+![stalltop showing Claude, Gemini and Codex sessions](demo/stalltop.gif)
 
 You started four agents in four terminals. One has been waiting for you to approve `npm run build`, for nearly 20 minutes. Another hit its usage limit an hour ago and will sit there until you notice. 
-StallTop lists every live AI coding agent session (Claude Code, Codex CLI, Gemini CLI, Antigravity CLI) on your machine, shows what each one is doing and what it costs, and **pits the ones that need you on top**.
+StallTop lists every live AI coding agent session (Claude Code, Codex CLI, Gemini CLI, Antigravity CLI) on your machine, shows what each one is doing and what it costs, and **puts the ones that need you on top**.
 
 - **Needs you**: a session is waiting on a permission or a question
 - **Rate-limited**: a session hit a usage limit. You see the reset time and a countdown
@@ -27,6 +27,8 @@ It only reads the files your agents already write on your disk. Nothing to confi
 
 
 ## Install
+
+Linux only for now (x86_64)
 
 Download the latest binary from the [Releases page](https://github.com/AlessioFerrari8/StallTop/releases/latest), then make it executable and put it in your `PATH`:
 
